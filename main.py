@@ -1,7 +1,7 @@
 import os
 import discord
 from discord import app_commands
-from keep_alive import keep_alive  # Flask keep-alive server
+from keep_alive import keep_alive  # Your keep-alive flask server
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -11,19 +11,45 @@ client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
 ALLOWED_ROLE_NAME = "Admin"
+ANNOUNCE_CHANNEL_ID = 1346137032933642351  # Replace with your announce channel ID
 
-# ID of the channel where you want to announce the rank assignment
-ANNOUNCE_CHANNEL_ID = 1346137032933642351  # <-- replace with your Discord channel ID
+# List of tier roles to auto-create
+TIER_ROLES = [
+    "LT5", "LT4", "LT3", "LT2", "LT1",
+    "MT5", "MT4", "MT3", "MT2", "MT1",
+    "HT5", "HT4", "HT3", "HT2", "HT1",
+]
 
 
 @client.event
 async def on_ready():
-    await tree.sync()
     print(f'Logged in as {client.user}')
+    # Auto-create roles if missing
+    guild = discord.utils.get(client.guilds)  # Just gets the first guild the bot is in
+    if guild:
+        existing_roles = [role.name for role in guild.roles]
+        for role_name in TIER_ROLES:
+            if role_name not in existing_roles:
+                try:
+                    await guild.create_role(name=role_name)
+                    print(f"Created role: {role_name}")
+                except Exception as e:
+                    print(f"Failed to create role {role_name}: {e}")
+    else:
+        print("Bot is not in any guild yet.")
+    
+    await tree.sync()
 
 
 def has_allowed_role(interaction: discord.Interaction):
     return any(role.name == ALLOWED_ROLE_NAME for role in interaction.user.roles)
+
+
+REGION_CHOICES = [
+    app_commands.Choice(name="AS", value="AS"),
+    app_commands.Choice(name="NA", value="NA"),
+    app_commands.Choice(name="EU", value="EU"),
+]
 
 
 @tree.command(
@@ -35,7 +61,13 @@ def has_allowed_role(interaction: discord.Interaction):
     tier="The name of the tier role to assign",
     region="The region of the player"
 )
-async def givetier(interaction: discord.Interaction, player: discord.Member, tier: str, region: str):
+@app_commands.choices(region=REGION_CHOICES)
+async def givetier(
+    interaction: discord.Interaction,
+    player: discord.Member,
+    tier: str,
+    region: app_commands.Choice[str]
+):
     if not has_allowed_role(interaction):
         await interaction.response.send_message(
             "❌ You don't have permission to use this command.", ephemeral=True
@@ -51,13 +83,12 @@ async def givetier(interaction: discord.Interaction, player: discord.Member, tie
         await player.add_roles(role)
         await interaction.response.send_message(f"✅ Assigned role '{tier}' to {player.mention}.")
 
-        # Send announcement message in the specific channel
         channel = client.get_channel(ANNOUNCE_CHANNEL_ID)
         if channel:
             announcement = (
                 f"**Tester:** {interaction.user.mention}\n"
                 f"**Username:** {player.mention}\n"
-                f"**Region:** {region}\n"
+                f"**Region:** {region.name}\n"
                 f"**Rank earned:** {role.name}"
             )
             await channel.send(announcement)
