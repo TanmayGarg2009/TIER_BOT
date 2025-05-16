@@ -13,7 +13,7 @@ tree = app_commands.CommandTree(client)
 ALLOWED_ROLE_NAME = "Admin"
 
 # ID of the channel where you want to announce the rank assignment
-ANNOUNCE_CHANNEL_ID = 123456789012345678  # <-- replace with your Discord channel ID
+ANNOUNCE_CHANNEL_ID = 1346137032933642351  # <-- replace with your Discord channel ID
 
 
 @client.event
