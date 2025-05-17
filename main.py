@@ -25,8 +25,15 @@ TIER_INDEX = {t: i for i, t in enumerate(TIERS)}
 
 def load_data():
     if os.path.exists(TIER_FILE):
-        with open(TIER_FILE, "r") as f:
-            return json.load(f)
+        try:
+            with open(TIER_FILE, "r") as f:
+                content = f.read().strip()
+                if not content:
+                    return {}
+                return json.loads(content)
+        except json.JSONDecodeError:
+            print("⚠️ tier_data.json is invalid. Resetting it.")
+            return {}
     return {}
 
 def save_data(data):
