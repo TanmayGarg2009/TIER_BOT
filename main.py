@@ -31,8 +31,12 @@ def has_allowed_role(interaction: discord.Interaction):
 
 def load_data():
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            return json.load(f)
+        try:
+            with open(DATA_FILE, "r") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            print("⚠️ tier_data.json is empty or invalid, reinitializing...")
+            return {}
     return {}
 
 def save_data(data):
